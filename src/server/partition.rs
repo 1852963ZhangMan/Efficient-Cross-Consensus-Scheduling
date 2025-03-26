@@ -21,10 +21,8 @@ pub struct Partition {
     initial_leader: NodeId,
     data_collection: DataCollection,
     
-    // Metrics for profiling
     total_messages: AtomicUsize,
     post_quorum_messages: AtomicUsize,
-    max_queue_length: AtomicUsize,
 }
 
 impl Partition {
@@ -54,7 +52,7 @@ impl Partition {
         // Initialize metrics
         let total_messages = AtomicUsize::new(0);
         let post_quorum_messages = AtomicUsize::new(0);
-        let max_queue_length = AtomicUsize::new(0);
+       
         
         Partition {
             server_id,
@@ -66,7 +64,6 @@ impl Partition {
             data_collection,
             total_messages,
             post_quorum_messages,
-            max_queue_length,
         }
     }
 
@@ -162,8 +159,6 @@ impl Partition {
     }
     
     
-    
-    /// Record a message being processed
     fn record_message(&self, msg: &Message<Command>) {
         self.total_messages.fetch_add(1, Ordering::SeqCst);
         if self.is_post_quorum_message(msg) {
@@ -171,13 +166,6 @@ impl Partition {
         }
     }
     
-    /// Update the maximum queue length if the current length is larger
-    pub fn update_max_queue_length(&self, queue_length: usize) {
-        let current_max = self.max_queue_length.load(Ordering::SeqCst);
-        if queue_length > current_max {
-            self.max_queue_length.store(queue_length, Ordering::SeqCst);
-        }
-    }
     
     /// Check if a message is post-quorum
     fn is_post_quorum_message(&self, msg: &Message<Command>) -> bool {
@@ -205,23 +193,13 @@ impl Partition {
     
     
     
-    /// Get the total number of messages processed
+    
     pub fn total_messages(&self) -> usize {
         self.total_messages.load(Ordering::SeqCst)
     }
     
-    /// Get the number of post-quorum messages processed
-    pub fn post_quorum_messages(&self) -> usize {
-        self.post_quorum_messages.load(Ordering::SeqCst)
-    }
-    
-    /// Get the maximum queue length observed
-    pub fn max_queue_length(&self) -> usize {
-        self.max_queue_length.load(Ordering::SeqCst)
-    }
-    
-    /// Calculate the percentage of post-quorum messages
-    pub fn post_quorum_percentage(&self) -> f64 {
+      /// Calculate the percentage of post-quorum messages
+      pub fn post_quorum_percentage(&self) -> f64 {
         let total = self.total_messages();
         if total > 0 {
             (self.post_quorum_messages() as f64 / total as f64) * 100.0
@@ -229,4 +207,10 @@ impl Partition {
             0.0
         }
     }
+    pub fn post_quorum_messages(&self) -> usize {
+        self.post_quorum_messages.load(Ordering::SeqCst)
+    }
+    
+   
+  
 }

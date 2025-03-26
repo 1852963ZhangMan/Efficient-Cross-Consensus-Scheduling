@@ -111,10 +111,6 @@ impl OmniPaxosServer {
                     self.send_outgoing(outgoing_msg_buffer);
                 },
                 _ = self.network.cluster_messages.recv_many(&mut cluster_msg_buf, NETWORK_BATCH_SIZE) => {
-                    // Update metrics for queue length before processing
-                    for partition in self.partitions.iter() {
-                        partition.update_max_queue_length(cluster_msg_buf.len());
-                    }
                     
                     let end_experiment = self.handle_cluster_messages(&mut cluster_msg_buf).await;
                     if end_experiment {
@@ -142,7 +138,6 @@ impl OmniPaxosServer {
         self.save_output().expect("Failed to write to file");
     }
 
-    // Helper method to get a map of partition start keys to their indices
     fn get_partition_key_map(&self) -> HashMap<Key, usize> {
         let mut key_map = HashMap::new();
         for (idx, partition) in self.partitions.iter().enumerate() {
@@ -327,7 +322,7 @@ impl OmniPaxosServer {
     fn save_output(&self) -> Result<(), std::io::Error> {
         self.to_json(self.config.summary_filepath.clone())?;
         self.to_csv(self.config.output_filepath.clone())?;
-        self.to_metrics_csv(format!("{}_metrics.csv", self.config.output_filepath.clone()))?;
+        self.to_metrics_csv(format!("{}_post_quorum_percentage.csv", self.config.output_filepath.clone()))?;
 
         Ok(())
     }
@@ -358,15 +353,6 @@ impl OmniPaxosServer {
         let file = File::create(file_path)?;
         let mut writer = Writer::from_writer(file);
         
-        // Write header
-        writer.write_record(&[
-            "partition_start_key",
-            "partition_end_key", 
-            "total_messages",
-            "post_quorum_messages",
-            "post_quorum_percentage",
-            "max_queue_length",
-        ])?;
         
         // Write data for each partition
         for partition in self.partitions.iter() {
@@ -379,7 +365,6 @@ impl OmniPaxosServer {
                 format!("{}", partition.total_messages()),
                 format!("{}", partition.post_quorum_messages()),
                 format!("{:.2}", partition.post_quorum_percentage()),
-                format!("{}", partition.max_queue_length()),
             ])?;
         }
         
