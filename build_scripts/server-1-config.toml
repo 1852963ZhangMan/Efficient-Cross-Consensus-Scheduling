@@ -3,8 +3,8 @@ server_id = 1
 num_clients = 1 # Hardcoded number of client connections to wait for
 summary_filepath = "../benchmarks/logs/local-run/server-1.json"
 output_filepath = "../benchmarks/logs/local-run/server-1.csv"
-in_scheduling_strategy = "HB_LF_FF"
-out_scheduling_strategy = "FCFS"
+in_scheduling_strategy = "TS"
+out_scheduling_strategy = "TS"
 
 # Cluster-wide settings
 local_deployment = true # use localhost
